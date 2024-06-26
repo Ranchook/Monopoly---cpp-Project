@@ -2,7 +2,7 @@
 
 This project involves implementing a Monopoly game in C++ as part of an Object-Oriented Programming course.
 
-### Key Components:
+## Key Components:
 - **Game Board (pictured below):** Consists of N slots, each being either a property or an instruction slot.
 - **Properties:** Belong to specific city groups, have purchase prices and rent values. 
 - **Instruction Slots:** Include Jail, Start, and Get Ticket types.
