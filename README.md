@@ -1,4 +1,4 @@
-# Monopoly---cpp-Project
+# Monopoly cpp Project
 
 This project involves implementing a Monopoly game in C++ as part of an Object-Oriented Programming course.
 
