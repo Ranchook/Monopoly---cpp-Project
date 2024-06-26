@@ -1,16 +1,18 @@
 #include "gameEngine.h"
 
+// Constructor for GameEngine, initializes game components and starts the game
 GameEngine::GameEngine(const int playersNum)
 {
-	buildBoard();
+	buildBoard();	
 	createPlayers(playersNum);
 	createDeck();
 
-	//setting color in cmd window for comfort
+	// Setting color in command window for better readability
 	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	startGame();
 }
 
+// Destructor for GameEngine, cleans up dynamic memory
 GameEngine::~GameEngine()
 {
 	players.clear();
@@ -19,78 +21,83 @@ GameEngine::~GameEngine()
 	board.clear();
 }
 
+// Method to build the game board from a file
 void GameEngine::buildBoard()
 {
-	//reading file and creating board
+	// Buffer for reading lines from the file
 	char buff[40];
 	int startFlag = 0;
-	ifstream gameBoard(BOARD, ios::in);
-	gameBoard.seekg(0, ios::beg);
+	ifstream gameBoard(BOARD, ios::in);  // Open the board file
+	gameBoard.seekg(0, ios::beg); // Set the position to the beginning of the file
 	try {
 		
 		if (!gameBoard.is_open()) throw "file not opened";
 		
 		while (!gameBoard.eof())
 		{
-			gameBoard.getline(buff, 40, ',');
-			if (*buff == 'I')
+			gameBoard.getline(buff, 40, ','); // Read a line from the file
+			if (*buff == 'I') // If the slot is an Instruction
 			{
-				gameBoard.getline(buff, 40, ',');
+				gameBoard.getline(buff, 40, ','); // Read the instruction type
 				char instType = *buff;
-				// checking if start slot already exist
+				
+				// Check if start slot already exist
 				if (startFlag == 1 && instType == 'S') BAD_INPUT;
 				if (*buff == 'S') 
 					startFlag = 1;
-				gameBoard.getline(buff, 40); //reading til end of line from file
-				string instName = buff; // saving slot name
+				
+				gameBoard.getline(buff, 40); //Read the rest of line from file
+				string instName = buff; // Save the instruction name
 				Instruction *temp = new Instruction(instName, getSlotType(instType));
-				//board.push_front(temp); // putting slot to board
-				board.push_back(temp);
+				//board.push_front(temp);
+				board.push_back(temp); // Add the instruction to the board
 			}
 			
-			else if (*buff == 'P')
+			else if (*buff == 'P') // If the slot is an Asset
 			{
-				gameBoard.getline(buff, 40, ',');
+				gameBoard.getline(buff, 40, ','); // Read the city name
 				string cityName = buff;
-				gameBoard.getline(buff, 40, ',');
+				gameBoard.getline(buff, 40, ','); // Read the asset name
 				string assetName = buff;
-				gameBoard.getline(buff, 40, ',');
-				int housePrice = atoi(buff);	//using atoi to read integers
-				gameBoard.getline(buff, 40);
+				gameBoard.getline(buff, 40, ','); // Read the house price
+				int housePrice = atoi(buff);
+				gameBoard.getline(buff, 40); // Read the rent price
 				int rentPrice = atoi(buff);
 				Asset *temp = new Asset(assetName, cityName, housePrice, rentPrice);
 				
-				board.push_back(temp);
+				board.push_back(temp); // Add the asset to the board
 				
 				//board.push_front(temp); // putting slot to board
 			}
-			else if (*buff == NULL) // if end of file
+			else if (*buff == NULL) // If end of file
 				break;
-			else throw "File not valid!\n";
-			slotTotal++; //saving slot total
+			else throw "File not valid!\n"; // Throw an error if file format is invalid
+			slotTotal++; // Increment slot total
 		}
 	}
 	catch (const char* err)
-	{cout << err;}
+	{cout << err;} // Print error message
 
-	gameBoard.close();
+	gameBoard.close(); // Close the file
 	
 
 	//for Debug
 	//boardPrint();
 }
 
+// Method to get the slot type based on a character representation
 const slotType GameEngine::getSlotType(const char c)
 {
-	//if landed on Instruction slot, return Instruction type
-	if (c == 'S') return Start;
+	// If landed on Instruction slot, return Instruction type
+	if (c == 'S') return Start; 
 	if (c == 'J') return Jail;
 	return Ticket;
 }
 
+// Method to create players
 void GameEngine::createPlayers(const int total)
 {
-	//assign different color for each player
+	// Assign different color for each player
 	int colorIndx = 9;
 	for (int i = 0; i < total; i++, colorIndx++)
 	{
@@ -99,39 +106,41 @@ void GameEngine::createPlayers(const int total)
 		cout << "Player " << i + 1 << " name: ";
 		string name;
 		cin >> name; 
-		//if name repeats, re-enter name
+		// If name repeats, re-enter name
 		while (!nameCheck(name))
 			cin >> name; 
-		Player *temp = new Player(name, colorIndx); // creating new player
-		players.push_back(temp); // adding him to the end of players line
+		Player *temp = new Player(name, colorIndx); // Create new player
+		players.push_back(temp); // Add player to the end of players line
 	}
 }
 
+// Method to create the deck of cards
 void GameEngine::createDeck()
 {
-	// creating deck of pre-determined number of cards 
-	// with values between (-350) to 350
+	// Create  deck of pre-determined number of cards with random values between (-350) to 350
 	srand((unsigned int)time(NULL));
 	for (int i = 0; i < CARDS; i++)
 		deck.push(rand()% 700-350);
 	drawFromDeck();
 }
 
+// Method to start the game
 void GameEngine::startGame()
 {
-	//point to first player
+	// Point to first player
 	deque <Player*>::iterator playerTurn = players.begin();
-	// play while last player are different players
+	
+	// Play while there is more than one player
 	while (players.size() > 1)
 	{
-		// printing player turn in his color
+		// Printing player turn in their  color
 		SetConsoleTextAttribute(hConsole, (*playerTurn)->color);
 		cout << "\n========================================\n";
 		cout << "It's " << (*playerTurn)->getPlayerName() << "'s turn" << endl;
 		cout << "you have " << (*playerTurn)->getMoney() << " NIS" << endl;
 		if ((*playerTurn)->getJail())
 		{
-			//if player is in jail, release him and skip his turn
+			// If player is in jail, release him and skip his turn
 			cout << "Your'e in jail, you'll play next turn" << endl;
 			(*playerTurn)->setJail(false);
 			if (playerTurn != players.end() - 1)
@@ -141,7 +150,8 @@ void GameEngine::startGame()
 			continue;
 		}
 
-		if (!turn(*playerTurn)) //if player lost/quit remove him from the vector
+		//if player lost/quit remove him from the vector
+		if (!turn(*playerTurn))
 		{
 			WHITE_PRINT;
 			if (playerTurn == players.end() - 1)
@@ -159,10 +169,10 @@ void GameEngine::startGame()
 		cout << (*playerTurn)->getPlayerName() << "'s turn is over" << endl;
 		cout << "you now have " << (*playerTurn)->getMoney() << " NIS" << endl;
 
-		//check if last player turn
+		// Check if it's the last player's turn
 		if (playerTurn == players.end() - 1)
 		{
-			//if more than 1 players, print each player's assets
+			// If more than 1 players, print each player's assets
 			if (players.size() > 1)
 				owners();
 			playerTurn = players.begin();
@@ -171,12 +181,13 @@ void GameEngine::startGame()
 		playerTurn++;
 	}
 
-	//print winner in "formal" white color
+	// Print winner in "formal" white color
 	WHITE_PRINT;	// print winner name in white
 	cout << "\nThe winner is:" << (*playerTurn)->getPlayerName() << endl << endl;
 	delete *playerTurn;
 }
 
+// Method to handle a player's turn
 const bool GameEngine::turn(Player *p)
 {
 	if (!quitOrPlay())
@@ -186,17 +197,18 @@ const bool GameEngine::turn(Player *p)
 		return false;
 	}
 	cout << endl << p->getPlayerName() << " is Currently in slot " << p->getPosition();
-	Slot* temp = movePlayer(p, rollDice()); // moving player and saving new slot
+	Slot* temp = movePlayer(p, rollDice()); // Move player and save new slot
 	cout << p->getPlayerName() << " is now in slot " << p->getPosition() << endl;
 	temp->printSlot();
 	
-	//act according to slot type
+	// Act according to slot type
 	if (ASST(temp))
 		return assetOptions(p, ASST(temp));
 	else
 		return instOptions(p, INST (temp)); 
 }
 
+// Method to handle the choice to quit or continue playing
 const bool GameEngine::quitOrPlay()
 {
 	cout << "Please choose if you'd like to keep playing or quit:" << endl;
@@ -204,51 +216,54 @@ const bool GameEngine::quitOrPlay()
 	return choose_0_or_1();
 }
 
+// Method to roll the dice and get a random number
 const int GameEngine::rollDice()
 {
-	//returns value between 1 to 6
+	// Returns value between 1 to 6
 	srand((unsigned int)time(NULL));
 	int temp =  ((rand() % 6) + 1);
 	cout << " Rolled dice gave - " << temp << endl;
 	return temp;
 }
 
+// Method to move a player a certain number of slots
 Slot* GameEngine::movePlayer(Player *p, const  int dice)
 {
-	//pointing to last slot
+	// Pointing to last slot
 	list <Slot*>::iterator lastSlot = findSlot(slotTotal);
 	
-	//find player current position
+	// Find player current position
 	list <Slot*>::iterator iter = findSlot(p->getPosition());
 	
 	for (int steps = 0; steps < dice; steps++)
 	{
-		// if player completes a lap, point to slot 1
+		// If player completes a lap, point to slot 1
 		if (iter == lastSlot)
 		{
 			iter = board.begin();
-			//if player has no more steps stay on slot 1
+			// If player has no more steps stay on slot 1
 			if (dice - steps > 1)
 			{
 				cout << "Passed on Start, get " << START_SUM << " NIS\n";
-				instOptions(p, INST(*iter)); // adding START_SUM to player
+				instOptions(p, INST(*iter)); // Adding START_SUM to player
 			}
 			continue;
 		}
 		iter++;
 	}
-	p->setPosition((*iter)->getSlotNum()); // update player position
+	p->setPosition((*iter)->getSlotNum()); // Update player position
 	return (*iter);
 }
 
+// Method to present options to a player when they land on an asset slot
 const bool GameEngine::assetOptions(Player *p, Asset* house)
 {
-	if (!house->getOwner()) //if house is not owned
+	if (!house->getOwner()) // If house is not owned
 	{
-		// check if player have enough money to buy it		
+		// Check if player have enough money to buy it		
 		if (p->getMoney() < house->getHousePrice()) 
 			cout << "You don't have enough money to buy this house!\n";	
-		else	//player have enough money to buy it
+		else	// Player have enough money to buy it
 		{
 			cout << "Would you like to buy this house?" << endl;
 			cout << "1 - Yes. 0 - No" << endl;
@@ -261,9 +276,9 @@ const bool GameEngine::assetOptions(Player *p, Asset* house)
 		}
 		
 	}
-	else // house is owned by someone
+	else // House is owned by someone
 	{
-		//check if self owned
+		// Check if self owned
 		if(house->getOwner() == p)
 		cout << "This is your asset" << endl;
 		else
@@ -271,58 +286,60 @@ const bool GameEngine::assetOptions(Player *p, Asset* house)
 			int rentPrice = house->getRent();
 			cout << "This is " << house->getOwner()->getPlayerName() << "'s asset, ";
 			cout << "you need to pay " << rentPrice << " NIS\n";
-			if (!house->isMortg()) // if house is not mortgage, pay to owner
+			if (!house->isMortg()) // If house is not mortgage, pay to owner
 				return p->payment(-rentPrice, house->getOwner());
-			else// house is mortgaged, owner doesn't get paid
+			else	// House is mortgaged, owner doesn't get paid
 				cout << "Asset is mortgaged! paying to bank \n";
-			return p->payment(-rentPrice); // player pays rent fee
+			return p->payment(-rentPrice); // Player pays rent fee
 		}
 	}
 	return true;
 }
 
+// Method of player actions when they land on an instruction slot
 const bool GameEngine::instOptions(Player *p, Instruction *inst)
 {
 	slotType temp = inst->getSlotType();
-	if (temp == Start) //landed on "Start" slot
+	if (temp == Start) // Landed on "Start" slot
 	{
-		p->payment(START_SUM); // add 350 to money and free mortgaged assets
+		p->payment(START_SUM); // Add 350 to money and free mortgaged assets
 		cout << "\nYou now have " << p->getMoney() << " NIS\n\n";
-		p->findMortgage();		//add mortgage years
+		p->findMortgage();	// Add mortgage years
 	}
-	else if (temp == Ticket) //landed on "Get Ticket" slot
+	else if (temp == Ticket) // Landed on "Get Ticket" slot
 	{
-		int ticket = drawFromDeck(); // draw card from deck
+		int ticket = drawFromDeck(); // Draw card from deck
 		cout << "You drew (" << ticket << ") from tickets deck\n";
 		return (p->payment(ticket));
 	}
-	else //landed in Jail
+	else // Landed in Jail
 	{
 		cout << "You are in jail, you won't play your next turn!\n";
-		p->setJail(true); // prevents player to play next turn
+		p->setJail(true); // Prevents player to play next turn
 	}
 	return true;
 }
 
+// Method to draw a card from the deck
 const int GameEngine::drawFromDeck()
 {
-	int temp = deck.front(); // saving top deck value
-	deck.pop(); // removing from top of deck
-	deck.push(temp);//placing value at the bottom of the deck
+	int temp = deck.front(); // Save the top deck value
+	deck.pop(); // Remove from top of deck
+	deck.push(temp);// Place value at the bottom of the deck
 	return temp;
 }
 
-//choosing between two options
+// Method to choose between two options (0 or 1)
 const bool GameEngine::choose_0_or_1(int option1, int option2)
 {
 	int sel;
 	cin >> sel;
 	while (cin.fail() || sel != option1 && sel != option2)
 	{
-		// if entered out of range or chars, enter new selection
+		// If entered out of range or chars, enter new selection
 		cout << "please choose " << option1 << " or " << option2 << " :";
 		
-		//clean buffer
+		// Clean buffer
 		cin.clear();
 		cin.ignore(numeric_limits<streamsize>::max(), '\n');
 		cin >> sel;
@@ -330,10 +347,10 @@ const bool GameEngine::choose_0_or_1(int option1, int option2)
 	return sel;
 }
 
-//rough print for personal use
+// Rough print for personal use
 void GameEngine::boardPrint()
 {
-	//rough print of board for DEBUG
+	// Rough print of board for DEBUG
 	cout << "The board is (after last slot you return to slot 1): " << endl;
 	list <Slot*>::iterator iter = board.begin();
 	for (iter; iter != board.end(); iter++)
@@ -341,7 +358,7 @@ void GameEngine::boardPrint()
 	cout << "\n========================================\n";
 }
 
-//finding specific slot
+// Method to find a specific slot
 list<Slot*>::iterator GameEngine::findSlot(const int indx)
 {
 	list <Slot*>::iterator iter = board.begin();
@@ -350,7 +367,7 @@ list<Slot*>::iterator GameEngine::findSlot(const int indx)
 	return iter;
 }
 
-//print all assets that each player own
+// Method to print all assets that each player owns
 void GameEngine::owners()
 {
 	WHITE_PRINT;
@@ -364,7 +381,7 @@ void GameEngine::owners()
 	cout << "\n*****************************************\n";
 }
 
-//check if repeated name
+// Method to check if a player name is unique
 const bool GameEngine::nameCheck(const string str)
 {
 	deque <Player*>::iterator iter = players.begin();
