@@ -20,7 +20,7 @@ public:
 	Slot(const string); // Constructor: Initializes a Slot with a name
 	virtual ~Slot() ; // Destructor: Cleans up the Slot
 	Slot(const string, int) { cout << "Can't copy Slot\n";}; // Copy Constructor: Not used, prints message
-	Slot operator = (string) { cout << "Can't assign Slot\n";}; Assignment (=) Operator: Not used, prints message
+	Slot operator = (string) { cout << "Can't assign Slot\n";}; // Assignment (=) Operator: Not used, prints message
 
 	// Getter and setter for slot number
 	void setSlotNum(const int); 
